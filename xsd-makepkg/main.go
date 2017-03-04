@@ -8,7 +8,7 @@ import (
 
 	"github.com/metaleap/go-util-misc"
 
-	xsd "github.com/metaleap/go-xsd"
+	xsd "github.com/parsable/go-xsd"
 )
 
 var (
