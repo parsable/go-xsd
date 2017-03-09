@@ -125,7 +125,7 @@ func newPkgBag(schema *Schema) (bag *PkgBag) {
 	for _, pt := range []string{"Boolean", "Byte", "Double", "Float", "Int", "Integer", "Long", "NegativeInteger", "NonNegativeInteger", "NonPositiveInteger", "PositiveInteger", "Short", "UnsignedByte", "UnsignedInt", "UnsignedLong", "UnsignedShort"} {
 		bag.parseTypes[bag.impName+"."+pt] = true
 	}
-	bag.addType(nil, idPrefix+"HasCdata", "").addField(nil, idPrefix+"CDATA", "string", ",chardata")
+	bag.addType(nil, idPrefix+"HasCdata", "").addField(nil, idPrefix+"CDATA", "*string", ",chardata")
 	return
 }
 
@@ -198,9 +198,9 @@ func (me *PkgBag) assembleSource() string {
 		render(gr)
 	}
 
-  for _, dt := range me.declTypes {
-    dt.render(me)
-  }
+	for _, dt := range me.declTypes {
+		dt.render(me)
+	}
 
 	if len(me.walkerTypes) > 0 {
 		doc := sfmt("//\tProvides %v strong-typed hooks for your own custom handler functions to be invoked when the Walk() method is called on any instance of any (non-attribute-related) struct type defined in this package.\n//\tIf your custom handler does get called at all for a given struct instance, then it always gets called twice, first with the 'enter' bool argument set to true, then (after having Walk()ed all subordinate struct instances, if any) once again with it set to false.", len(me.walkerTypes))
@@ -342,6 +342,9 @@ func (me *declField) render(bag *PkgBag, dt *declType) {
 		}
 	}
 	me.finalTypeName = bag.rewriteTypeSpec(me.Type)
+	if _, ok := bag.declTypes[me.finalTypeName]; ok {
+		me.finalTypeName = "*" + me.finalTypeName
+	}
 	bag.appendFmt(true, "\t%s %s `xml:\"%s\"`", me.Name, me.finalTypeName, me.XmlTag)
 }
 
