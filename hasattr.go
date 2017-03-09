@@ -80,7 +80,16 @@ type hasAttrMemberTypes struct {
 }
 
 type hasAttrMinOccurs struct {
-	MinOccurs uint64 `xml:"minOccurs,attr"`
+	MinOccurs string `xml:"minOccurs,attr"`
+}
+
+func (me *hasAttrMinOccurs) Value() (l xsdt.Long) {
+	if len(me.MinOccurs) == 0 {
+		l = 1
+	} else {
+		l.Set(me.MinOccurs)
+	}
+	return
 }
 
 type hasAttrMixed struct {

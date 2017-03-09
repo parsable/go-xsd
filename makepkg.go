@@ -125,7 +125,7 @@ func newPkgBag(schema *Schema) (bag *PkgBag) {
 	for _, pt := range []string{"Boolean", "Byte", "Double", "Float", "Int", "Integer", "Long", "NegativeInteger", "NonNegativeInteger", "NonPositiveInteger", "PositiveInteger", "Short", "UnsignedByte", "UnsignedInt", "UnsignedLong", "UnsignedShort"} {
 		bag.parseTypes[bag.impName+"."+pt] = true
 	}
-	bag.addType(nil, idPrefix+"HasCdata", "").addField(nil, idPrefix+"CDATA", "*string", ",chardata")
+	bag.addType(nil, idPrefix+"HasCdata", "").addField(nil, false, idPrefix+"CDATA", "*string", ",chardata")
 	return
 }
 
@@ -329,6 +329,7 @@ func (me *declEmbed) render(bag *PkgBag, dt *declType) {
 }
 
 type declField struct {
+	Required           bool
 	Name, Type, XmlTag string
 	Annotations        []*Annotation
 	elem               element
@@ -345,7 +346,11 @@ func (me *declField) render(bag *PkgBag, dt *declType) {
 	if _, ok := bag.declTypes[me.finalTypeName]; ok {
 		me.finalTypeName = "*" + me.finalTypeName
 	}
-	bag.appendFmt(true, "\t%s %s `xml:\"%s\"`", me.Name, me.finalTypeName, me.XmlTag)
+	var validate string
+	if me.Required {
+		validate = ` validate:"required"`
+	}
+	bag.appendFmt(true, "\t%s %s `xml:\"%s\"%s`", me.Name, me.finalTypeName, me.XmlTag, validate)
 }
 
 type declMethod struct {
@@ -380,8 +385,8 @@ func (me *declType) addAnnotations(a ...*Annotation) {
 	me.Annotations = append(me.Annotations, a...)
 }
 
-func (me *declType) addField(elem element, n, t, x string, a ...*Annotation) (f *declField) {
-	f = &declField{elem: elem, Name: n, Type: t, XmlTag: x, Annotations: a}
+func (me *declType) addField(elem element, r bool, n, t, x string, a ...*Annotation) (f *declField) {
+	f = &declField{elem: elem, Required: r, Name: n, Type: t, XmlTag: x, Annotations: a}
 	me.Fields[n] = f
 	return
 }

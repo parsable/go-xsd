@@ -80,7 +80,7 @@ func (me *Attribute) makePkg(bag *PkgBag) {
 			bag.attsKeys[me] = key
 			bag.attsCache[key] = tmp
 			var td = bag.addType(me, tmp, "", me.Annotation)
-			td.addField(me, safeName, typeName, ustr.Ifs(len(bag.Schema.TargetNamespace) > 0, bag.Schema.TargetNamespace.String()+" ", "")+me.Name.String()+",attr", me.Annotation)
+			td.addField(me, false, safeName, typeName, ustr.Ifs(len(bag.Schema.TargetNamespace) > 0, bag.Schema.TargetNamespace.String()+" ", "")+me.Name.String()+",attr", me.Annotation)
 			if isPt := bag.isParseType(typeName); len(defVal) > 0 {
 				doc := sfmt("Returns the %v value for %v -- "+ustr.Ifs(isPt, "%v", "%#v"), strings.ToLower(defName), safeName, defVal)
 				if isPt {
@@ -289,7 +289,7 @@ func (me *ComplexType) makePkg(bag *PkgBag) {
 		}
 	} else if ctValueType = bag.resolveQnameRef(ctValueType, "T", nil); len(ctValueType) > 0 {
 		bag.simpleContentValueTypes[typeSafeName] = ctValueType
-		td.addField(nil, idPrefix+"Value", ctValueType, ",chardata")
+		td.addField(nil, false, idPrefix+"Value", ctValueType, ",chardata")
 		chain := sfmt("me.%vValue", idPrefix)
 		td.addMethod(nil, "*"+typeSafeName, sfmt("To%v", bag.safeName(ctValueType)), ctValueType, sfmt("return %v", chain), sfmt("Simply returns the value of its %vValue field.", idPrefix))
 		ttn := ctValueType
@@ -414,7 +414,7 @@ func (me *Element) makePkg(bag *PkgBag) {
 				bag.elemsWritten[tmp], bag.elemKeys[me] = true, key
 				cache[key] = tmp
 				var td = bag.addType(me, tmp, "", me.Annotation)
-				td.addField(me, ustr.Ifs(pref == "HasElems_", pluralize(safeName), safeName), ustr.Ifs(pref == "HasElems_", "[]"+asterisk+typeName, asterisk+typeName), ustr.Ifs(len(bag.Schema.TargetNamespace) > 0, bag.Schema.TargetNamespace.String()+" ", "")+me.Name.String(), me.Annotation)
+				td.addField(me, me.hasAttrMinOccurs.Value() >= 1, ustr.Ifs(pref == "HasElems_", pluralize(safeName), safeName), ustr.Ifs(pref == "HasElems_", "[]"+asterisk+typeName, asterisk+typeName), ustr.Ifs(len(bag.Schema.TargetNamespace) > 0, bag.Schema.TargetNamespace.String()+" ", "")+me.Name.String(), me.Annotation)
 				if me.parent == bag.Schema {
 					loadedSchemas := make(map[string]bool)
 					for _, subEl = range bag.Schema.RootSchema([]string{bag.Schema.loadUri}).globalSubstitutionElems(me, loadedSchemas) {
