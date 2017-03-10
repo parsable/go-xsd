@@ -122,14 +122,14 @@ func (me *AttributeGroup) makePkg(bag *PkgBag) {
 				ag.Ref.Set(ag.Name.String())
 			}
 			if refName = bag.resolveQnameRef(ag.Ref.String(), "", &refImp); len(refImp) > 0 {
-				td.addEmbed(ag, refImp+"."+idPrefix+"HasAtts_"+refName[(len(refImp)+1):], ag.Annotation)
+				td.addEmbed(ag, true, refImp+"."+idPrefix+"HasAtts_"+refName[(len(refImp)+1):], ag.Annotation)
 			} else {
-				td.addEmbed(ag, idPrefix+"HasAtts_"+refName, ag.Annotation)
+				td.addEmbed(ag, true, idPrefix+"HasAtts_"+refName, ag.Annotation)
 			}
 		}
 		for _, att := range me.Attributes {
 			if key := bag.attsKeys[att]; len(key) > 0 {
-				td.addEmbed(att, bag.attsCache[key], att.Annotation)
+				td.addEmbed(att, true, bag.attsCache[key], att.Annotation)
 			}
 		}
 	}
@@ -283,9 +283,9 @@ func (me *ComplexType) makePkg(bag *PkgBag) {
 	}
 	if ctBaseType = bag.resolveQnameRef(ctBaseType, "T", nil); len(ctBaseType) > 0 {
 		if strings.HasPrefix(ctBaseType, "xsdt.") {
-			td.addEmbed(nil, idPrefix+"HasCdata")
+			td.addEmbed(nil, true, idPrefix+"HasCdata")
 		} else {
-			td.addEmbed(nil, bag.safeName(ctBaseType))
+			td.addEmbed(nil, true, bag.safeName(ctBaseType))
 		}
 	} else if ctValueType = bag.resolveQnameRef(ctValueType, "T", nil); len(ctValueType) > 0 {
 		bag.simpleContentValueTypes[typeSafeName] = ctValueType
@@ -308,7 +308,7 @@ func (me *ComplexType) makePkg(bag *PkgBag) {
 			println("NOTFOUND: " + ctValueType)
 		}
 	} else if mixed {
-		td.addEmbed(nil, idPrefix+"HasCdata")
+		td.addEmbed(nil, true, idPrefix+"HasCdata")
 	}
 	for elGr, _ = range allElemGroups {
 		subMakeElemGroup(bag, td, elGr, grsDone, anns(nil, me.ComplexContent)...)
@@ -333,12 +333,12 @@ func (me *ComplexType) makePkg(bag *PkgBag) {
 		}
 	}
 	for attGroup, _ = range allAttGroups {
-		td.addEmbed(attGroup, ustr.PrefixWithSep(bag.attGroupRefImps[attGroup], ".", bag.attGroups[attGroup][(strings.Index(bag.attGroups[attGroup], ".")+1):]), attGroup.Annotation)
+		td.addEmbed(attGroup, true, ustr.PrefixWithSep(bag.attGroupRefImps[attGroup], ".", bag.attGroups[attGroup][(strings.Index(bag.attGroups[attGroup], ".")+1):]), attGroup.Annotation)
 	}
 
 	for att, _ = range allAtts {
 		if key := bag.attsKeys[att]; len(key) > 0 {
-			td.addEmbed(att, ustr.PrefixWithSep(bag.attRefImps[att], ".", bag.attsCache[key][(strings.Index(bag.attsCache[key], ".")+1):]), att.Annotation)
+			td.addEmbed(att, true, ustr.PrefixWithSep(bag.attRefImps[att], ".", bag.attsCache[key][(strings.Index(bag.attsCache[key], ".")+1):]), att.Annotation)
 		}
 	}
 	me.elemBase.afterMakePkg(bag)
@@ -414,11 +414,11 @@ func (me *Element) makePkg(bag *PkgBag) {
 				bag.elemsWritten[tmp], bag.elemKeys[me] = true, key
 				cache[key] = tmp
 				var td = bag.addType(me, tmp, "", me.Annotation)
-				td.addField(me, me.hasAttrMinOccurs.Value() >= 1, ustr.Ifs(pref == "HasElems_", pluralize(safeName), safeName), ustr.Ifs(pref == "HasElems_", "[]"+asterisk+typeName, asterisk+typeName), ustr.Ifs(len(bag.Schema.TargetNamespace) > 0, bag.Schema.TargetNamespace.String()+" ", "")+me.Name.String(), me.Annotation)
+				td.addField(me, true, ustr.Ifs(pref == "HasElems_", pluralize(safeName), safeName), ustr.Ifs(pref == "HasElems_", "[]"+asterisk+typeName, asterisk+typeName), ustr.Ifs(len(bag.Schema.TargetNamespace) > 0, bag.Schema.TargetNamespace.String()+" ", "")+me.Name.String(), me.Annotation)
 				if me.parent == bag.Schema {
 					loadedSchemas := make(map[string]bool)
 					for _, subEl = range bag.Schema.RootSchema([]string{bag.Schema.loadUri}).globalSubstitutionElems(me, loadedSchemas) {
-						td.addEmbed(subEl, idPrefix+pref+bag.safeName(subEl.Name.String()), subEl.Annotation)
+						td.addEmbed(subEl, me.hasAttrMinOccurs.Value() >= 1, idPrefix+pref+bag.safeName(subEl.Name.String()), subEl.Annotation)
 					}
 				}
 				if len(defVal) > 0 {
@@ -864,7 +864,7 @@ func subMakeElem(bag *PkgBag, td *declType, el *Element, done map[string]bool, p
 	anns = append(anns, el.Annotation)
 	if refName := bag.elemKeys[el]; (len(refName) > 0) && (!done[refName]) {
 		if done[refName], elCache = true, ustr.Ifm((parentMaxOccurs == 1) && (el.hasAttrMaxOccurs.Value() == 1), bag.elemsCacheOnce, bag.elemsCacheMult); !strings.HasPrefix(elCache[refName], bag.impName+"."+idPrefix) {
-			td.addEmbed(el, elCache[refName], anns...)
+			td.addEmbed(el, el.hasAttrMinOccurs.Value() >= 1, elCache[refName], anns...)
 		}
 	}
 }
@@ -875,10 +875,10 @@ func subMakeElemGroup(bag *PkgBag, td *declType, gr *Group, done map[string]bool
 	if refName := bag.resolveQnameRef(gr.Ref.String(), "", &refImp); !done[refName] {
 		if done[refName] = true; len(refImp) > 0 {
 			if !strings.HasPrefix(refName, bag.impName+"."+idPrefix) {
-				td.addEmbed(gr, refImp+"."+idPrefix+"HasGroup_"+refName[(len(refImp)+1):], anns...)
+				td.addEmbed(gr, true, refImp+"."+idPrefix+"HasGroup_"+refName[(len(refImp)+1):], anns...)
 			}
 		} else {
-			td.addEmbed(gr, idPrefix+"HasGroup_"+refName, anns...)
+			td.addEmbed(gr, true, idPrefix+"HasGroup_"+refName, anns...)
 		}
 	}
 }

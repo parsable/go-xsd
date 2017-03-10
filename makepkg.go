@@ -309,6 +309,7 @@ func (me *PkgBag) xsdStringTypeRef() string {
 }
 
 type declEmbed struct {
+	Required      bool
 	Name          string
 	Annotations   []*Annotation
 	elem          element
@@ -324,7 +325,11 @@ func (me *declEmbed) render(bag *PkgBag, dt *declType) {
 			}
 		}
 		me.finalTypeName = bag.rewriteTypeSpec(n)
-		bag.appendFmt(true, "\t%s", me.finalTypeName)
+		var validate string
+		if !me.Required {
+			validate = " `validate:\"structonly\"`"
+		}
+		bag.appendFmt(true, "\t%s%s", me.finalTypeName, validate)
 	}
 }
 
@@ -391,9 +396,9 @@ func (me *declType) addField(elem element, r bool, n, t, x string, a ...*Annotat
 	return
 }
 
-func (me *declType) addEmbed(elem element, name string, a ...*Annotation) (e *declEmbed) {
-	e = &declEmbed{elem: elem, Name: name, Annotations: a}
-	me.Embeds[name] = e
+func (me *declType) addEmbed(elem element, r bool, n string, a ...*Annotation) (e *declEmbed) {
+	e = &declEmbed{elem: elem, Required: r, Name: n, Annotations: a}
+	me.Embeds[n] = e
 	return
 }
 
