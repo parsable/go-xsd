@@ -80,7 +80,7 @@ func (me *Attribute) makePkg(bag *PkgBag) {
 			bag.attsKeys[me] = key
 			bag.attsCache[key] = tmp
 			var td = bag.addType(me, tmp, "", me.Annotation)
-			td.addField(me, false, safeName, typeName, ustr.Ifs(len(bag.Schema.TargetNamespace) > 0, bag.Schema.TargetNamespace.String()+" ", "")+me.Name.String()+",attr", me.Annotation)
+			td.addField(me, false, safeName, typeName, me.Name.String()+",attr", me.Annotation)
 			if isPt := bag.isParseType(typeName); len(defVal) > 0 {
 				doc := sfmt("Returns the %v value for %v -- "+ustr.Ifs(isPt, "%v", "%#v"), strings.ToLower(defName), safeName, defVal)
 				if isPt {
