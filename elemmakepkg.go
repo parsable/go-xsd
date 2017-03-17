@@ -326,6 +326,10 @@ func (me *ComplexType) makePkg(bag *PkgBag) {
 					maxOccurs *= p.hasAttrMaxOccurs.Value()
 				}
 			}
+			// Embed raw xml for order parsing later
+			if maxOccurs != 1 {
+				td.addField(nil, false, "RawXML", "[]byte", ",innerxml")
+			}
 			// Choice element is always optional validation
 			subMakeElem(bag, td, el, elsDone, maxOccurs, true, ch.Annotation)
 		}
