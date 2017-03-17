@@ -314,11 +314,20 @@ func (me *ComplexType) makePkg(bag *PkgBag) {
 		subMakeElemGroup(bag, td, elGr, grsDone, anns(nil, me.ComplexContent)...)
 	}
 	for el, _ = range allElems {
-		subMakeElem(bag, td, el, elsDone, 1, anns(me.All, nil)...)
+		subMakeElem(bag, td, el, elsDone, 1, false, anns(me.All, nil)...)
 	}
 	for _, ch := range allChoices {
 		for _, el = range ch.Elements {
-			subMakeElem(bag, td, el, elsDone, ch.hasAttrMaxOccurs.Value(), ch.Annotation)
+			// Merge sequence and choice combinations
+			maxOccurs := ch.hasAttrMaxOccurs.Value()
+			if maxOccurs == 1 {
+				if p, ok := ch.parent.(*Sequence); ok {
+					// Only parent maxOccurs = 1 will result in singular form
+					maxOccurs *= p.hasAttrMaxOccurs.Value()
+				}
+			}
+			// Choice element is always optional validation
+			subMakeElem(bag, td, el, elsDone, maxOccurs, true, ch.Annotation)
 		}
 		for _, elGr = range ch.Groups {
 			subMakeElemGroup(bag, td, elGr, grsDone, ch.Annotation)
@@ -326,7 +335,7 @@ func (me *ComplexType) makePkg(bag *PkgBag) {
 	}
 	for _, seq := range allSeqs {
 		for _, el = range seq.Elements {
-			subMakeElem(bag, td, el, elsDone, seq.hasAttrMaxOccurs.Value(), seq.Annotation)
+			subMakeElem(bag, td, el, elsDone, seq.hasAttrMaxOccurs.Value(), false, seq.Annotation)
 		}
 		for _, elGr = range seq.Groups {
 			subMakeElemGroup(bag, td, elGr, grsDone, seq.Annotation)
@@ -490,12 +499,21 @@ func (me *Group) makePkg(bag *PkgBag) {
 		choices, seqs = Flattened(choices, seqs)
 		if me.All != nil {
 			for _, el = range me.All.Elements {
-				subMakeElem(bag, td, el, elsDone, 1, me.All.Annotation)
+				subMakeElem(bag, td, el, elsDone, 1, false, me.All.Annotation)
 			}
 		}
 		for _, ch := range choices {
 			for _, el = range ch.Elements {
-				subMakeElem(bag, td, el, elsDone, ch.hasAttrMaxOccurs.Value(), ch.Annotation)
+				// Merge sequence and choice combinations
+				maxOccurs := ch.hasAttrMaxOccurs.Value()
+				if maxOccurs == 1 {
+					if p, ok := ch.parent.(*Sequence); ok {
+						// Only parent maxOccurs = 1 will result in singular form
+						maxOccurs *= p.hasAttrMaxOccurs.Value()
+					}
+				}
+				// Choice element is always optional validation
+				subMakeElem(bag, td, el, elsDone, maxOccurs, true, ch.Annotation)
 			}
 			for _, gr = range ch.Groups {
 				subMakeElemGroup(bag, td, gr, grsDone, ch.Annotation)
@@ -503,7 +521,7 @@ func (me *Group) makePkg(bag *PkgBag) {
 		}
 		for _, seq := range seqs {
 			for _, el = range seq.Elements {
-				subMakeElem(bag, td, el, elsDone, seq.hasAttrMaxOccurs.Value(), seq.Annotation)
+				subMakeElem(bag, td, el, elsDone, seq.hasAttrMaxOccurs.Value(), false, seq.Annotation)
 			}
 			for _, gr = range seq.Groups {
 				subMakeElemGroup(bag, td, gr, grsDone, seq.Annotation)
@@ -859,12 +877,12 @@ func safeIdentifier(s string) string {
 	return s
 }
 
-func subMakeElem(bag *PkgBag, td *declType, el *Element, done map[string]bool, parentMaxOccurs xsdt.Long, anns ...*Annotation) {
+func subMakeElem(bag *PkgBag, td *declType, el *Element, done map[string]bool, parentMaxOccurs xsdt.Long, optional bool, anns ...*Annotation) {
 	var elCache map[string]string
 	anns = append(anns, el.Annotation)
 	if refName := bag.elemKeys[el]; (len(refName) > 0) && (!done[refName]) {
 		if done[refName], elCache = true, ustr.Ifm((parentMaxOccurs == 1) && (el.hasAttrMaxOccurs.Value() == 1), bag.elemsCacheOnce, bag.elemsCacheMult); !strings.HasPrefix(elCache[refName], bag.impName+"."+idPrefix) {
-			td.addEmbed(el, el.hasAttrMinOccurs.Value() >= 1, elCache[refName], anns...)
+			td.addEmbed(el, !optional && el.hasAttrMinOccurs.Value() >= 1, elCache[refName], anns...)
 		}
 	}
 }
